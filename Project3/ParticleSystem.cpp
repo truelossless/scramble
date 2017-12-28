@@ -60,7 +60,7 @@ void ParticleSystem::addParticles(float count) {
 
 	float add = std::floor(count);
 
-	// dans le cas ou on doit ajouter une particule mais 1/x de particule
+	// dans le cas ou on ne doit pas ajouter une particule mais 1/x de particule
 	m_tmpParticle += count - add;
 
 	// il n'y a pas assez de particules à ajouter
@@ -130,6 +130,10 @@ void ParticleSystem::setStartColor(sf::Color color) {
 
 void ParticleSystem::setEndColor(sf::Color color) {
 	m_endColor = color;
+}
+
+void ParticleSystem::stop() {
+	m_lifetime = sf::Time::Zero;
 }
 
 bool ParticleSystem::isDone() const {

@@ -36,7 +36,6 @@ int main() {
 	sf::Clock laserClock; // vitesse de tir du vaisseau
 
 	// initialisation des sprites
-
 	Ship ship("resources/img/sprite/ship.png");
 	ship.setPosition(sf::Vector2f((screenWidth - ship.getSize().x) / 2, (screenHeight - ship.getSize().y) / 3));
 
@@ -58,6 +57,13 @@ int main() {
 	// tableau contenant les explosions en cours
 	std::vector<ParticleSystem> explosions;
 
+	// fumée si le vaisseau se met à manquer de fuel
+	ParticleSystem shipSmoke(30, sf::Vector2f(0, 0), sf::seconds(1), sf::seconds(4));
+	shipSmoke.setStartColor(sf::Color(117, 117, 117));
+	shipSmoke.setEndColor(sf::Color(255, 255, 255));
+	shipSmoke.setSpeed(50);
+	shipSmoke.setParticleSize(30);
+
 	// shader de pixelisation
 	sf::Shader pixelate;
 	if (!pixelate.loadFromFile("resources/shader/pixelate.frag", sf::Shader::Fragment)) return -1;
@@ -65,6 +71,30 @@ int main() {
 	// chargement des sons principaux en cache
 	FileManager::getSound("resources/sound/crash.wav");
 	FileManager::getSound("resources/sound/laser.wav");
+
+	// chargement de la police
+	sf::Font arial;
+	if (!arial.loadFromFile("resources/font/kindlyrewind.ttf")) return -1;
+
+	// création du texte
+	sf::Text fuelString;
+	fuelString.setFont(arial);
+	fuelString.setStyle(sf::Text::Bold);
+	fuelString.setString("FUEL");
+	fuelString.setFillColor(sf::Color::Red);
+	fuelString.setCharacterSize(48);
+	fuelString.setPosition(12, screenHeight - 60);
+
+	// jauge de fuel
+	sf::RectangleShape fuelMeter(sf::Vector2f(300, 40));
+	sf::RectangleShape emptyFuelMeter(sf::Vector2f(300, 40));
+	fuelMeter.setPosition(180, screenHeight - 52);
+	emptyFuelMeter.setPosition(180, screenHeight - 52);
+	fuelMeter.setFillColor(sf::Color(43, 71, 196));
+	emptyFuelMeter.setFillColor(sf::Color::Red);
+
+	float fuelDrain = 0;
+	bool noFuel = false;
 
 	// boucle principale
 	while (window.isOpen()) {
@@ -112,6 +142,18 @@ int main() {
 		sf::Time elapsed = renderClock.getElapsedTime();
 		renderClock.restart();
 
+		// draînage de la jauge de fuel
+		if (!gameOver && !noFuel) {
+			fuelDrain += elapsed.asSeconds() * 10;
+
+			if (fuelDrain >= 300) {
+				noFuel = true;
+				fuelDrain = 300;
+			}
+
+			fuelMeter.setSize(sf::Vector2f(300 - fuelDrain, 40));
+		}
+
 		// scrolling horizontal
 		if (!gameOver) {
 			view.move(sf::Vector2f(100 * gameSpeed * elapsed.asSeconds(), 0));
@@ -120,10 +162,16 @@ int main() {
 		// mouvement du vaisseau
 		float displacementX = 0;
 		float displacementY = 0;
-		if (moveLeft) displacementX -= 1000;
-		if (moveRight) displacementX += 1000;
-		if (moveUp) displacementY -= 1000;
-		if (moveDown) displacementY += 1000;
+
+		if (!noFuel ) {
+			if (moveLeft) displacementX -= 1000;
+			if (moveRight) displacementX += 1000;
+			if (moveUp) displacementY -= 1000;
+			if (moveDown) displacementY += 1000;
+		}
+		else if(!gameOver) {
+			displacementY += 500;
+		}
 
 		if (!gameOver) {
 			ship.move(sf::Vector2f(displacementX * elapsed.asSeconds(), displacementY * elapsed.asSeconds()));
@@ -132,7 +180,7 @@ int main() {
 		}
 
 		ground.setPosition(render.mapPixelToCoords(sf::Vector2i(0, screenHeight - 100)));
-		
+
 		// collisions avec l'écran
 		sf::Vector2i shipCoordinates = render.mapCoordsToPixel(sf::Vector2f(ship.getPosition().x, ship.getPosition().y));
 
@@ -164,6 +212,7 @@ int main() {
 			if (mountains[i].checkForCollision(ship.getSprite())) {
 				sf::Vector2f emitPos = sf::Vector2f(ship.getPosition().x + ship.getSize().x / 2, ship.getPosition().y + ship.getSize().y / 2);
 				if (!gameOver) {
+					// on crée l'explosion
 					ParticleSystem explosion(300, emitPos, sf::seconds(0.4), sf::seconds(1));
 					explosion.setSpeed(400);
 					explosion.setRandomFade(sf::seconds(0.3));
@@ -171,6 +220,9 @@ int main() {
 					explosion.setStartColor(sf::Color(255, 0, 0));
 					explosion.setEndColor(sf::Color(255, 255, 0));
 					explosions.push_back(explosion);
+
+					// on stoppe la fumée du vaisseau qui pourrait venir du manque de fuel
+					shipSmoke.stop();
 
 					FileManager::getSound("resources/sound/crash.wav").play();
 					gameOver = true;
@@ -211,15 +263,20 @@ int main() {
 			for (short j = 0; j < mountains.size(); j++) {
 				if (!mountains[j].isFuelTankDestroyed() && lasers[i].getGlobalBounds().intersects(mountains[j].getFuelTankSprite().getGlobalBounds())) {
 					laserCollided = true;
-					int index = explosions.size();
+
+					// création de l'explosion
 					explosions.push_back(ParticleSystem(200, lasers[i].getPosition(), sf::seconds(0.5), sf::seconds(1)));
 					mountains[j].destroyFuelTank();
+
+					// on rajoute l'essence
+					fuelDrain -= 100;
+					if (fuelDrain < 0) fuelDrain = 0;
 
 					break;
 				}
 
 			}
-			
+
 			// on supprime le laser s'il y a eu une collision
 			if (laserCollided) {
 				lasers.erase(lasers.begin() + i);
@@ -232,8 +289,8 @@ int main() {
 				lasers.erase(lasers.begin() + i);
 				continue;
 			}
-			
-			
+
+
 			render.draw(lasers[i]);
 
 		}
@@ -244,6 +301,13 @@ int main() {
 		// dessin du vaisseau
 		if (!gameOver) {
 			render.draw(ship.getSprite());
+		}
+
+		// dessin de la fumée si le vaisseau n'a plus de fuel
+		if (noFuel) {
+			shipSmoke.setEmitter(sf::Vector2f(ship.getSprite().getGlobalBounds().left, ship.getSprite().getGlobalBounds().top + ship.getSprite().getLocalBounds().height / 2));
+			shipSmoke.update(elapsed);
+			render.draw(shipSmoke);
 		}
 
 		// dessin des explosions
@@ -263,7 +327,6 @@ int main() {
 		}
 
 		// effet de tremblement
-		std::cout << biggestExplosionShake << std::endl;
 		shakeView(view, biggestExplosionShake);
 
 		// mise à jour de la vue
@@ -273,6 +336,12 @@ int main() {
 		sf::Sprite renderSprite(render.getTexture());
 
 		window.draw(renderSprite, &pixelate);
+
+		// dessin de la GUI
+		window.draw(fuelString);
+		window.draw(emptyFuelMeter);
+		window.draw(fuelMeter);
+
 		window.display();
 	}
 

@@ -6,7 +6,11 @@ int shakeOffset;
 
 void shakeView(sf::View& view, int strength) {
 
-	if (strength == 0) return;
+	if (strength == 0) {
+		shakeClock.restart();
+		return;
+	}
+
 
 	int elapsed = shakeClock.getElapsedTime().asMilliseconds();
 	sf::Vector2f shake(shakeOffset * elapsed / 100, 0);

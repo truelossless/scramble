@@ -17,6 +17,7 @@ public:
 	void setSpeed(unsigned int speed);
 	void setStartColor(sf::Color color);
 	void setEndColor(sf::Color color);
+	void stop();
 	float getState() const;
 	bool isDone() const;
 
