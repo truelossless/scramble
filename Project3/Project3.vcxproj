@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -104,6 +104,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>D:\librairies\SFML-build-2.4.2\lib\Release</AdditionalLibraryDirectories>
       <AdditionalDependencies>sfml-graphics.lib;sfml-window.lib;sfml-audio.lib;sfml-system.lib</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -120,17 +122,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="constants.cpp" />
+    <ClCompile Include="Game.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Mountain.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
+    <ClCompile Include="RetryScreen.cpp" />
     <ClCompile Include="shakeView.cpp" />
     <ClCompile Include="Ship.cpp" />
     <ClCompile Include="fileManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="constants.h" />
     <ClInclude Include="fileManager.h" />
+    <ClInclude Include="Game.h" />
     <ClInclude Include="Mountain.h" />
     <ClInclude Include="ParticleSystem.h" />
+    <ClInclude Include="RetryScreen.h" />
     <ClInclude Include="shakeView.h" />
     <ClInclude Include="Ship.h" />
   </ItemGroup>
